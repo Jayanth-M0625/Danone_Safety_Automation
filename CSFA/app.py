@@ -15,13 +15,13 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 def get_path(filename):
     return os.path.join(BASE_DIR, filename)
 
-# Page config
-st.set_page_config(
-    page_title="Contractor Safety Field Audits Dashboard - Danone",
-    page_icon="🛡️",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+# Page config (Commented out because this is run as a sub-page under st.navigation)
+# st.set_page_config(
+#     page_title="Contractor Safety Field Audits Dashboard - Danone",
+#     page_icon="🛡️",
+#     layout="wide",
+#     initial_sidebar_state="expanded"
+# )
 
 # Custom premium CSS injection
 st.markdown("""
