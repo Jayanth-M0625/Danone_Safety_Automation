@@ -7,13 +7,28 @@ import streamlit as st
 import plotly.graph_objects as go
 import plotly.express as px
 from datetime import datetime, timedelta
-from CSFA.trend_classifier_ml import predict_trend
 
 # Base directory of this script to resolve relative paths correctly
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def get_path(filename):
     return os.path.join(BASE_DIR, "CSFA", filename)
+
+# Configuration Loader to dynamically load paths
+CONFIG_PATH = os.path.join(BASE_DIR, "config.json")
+
+def load_config():
+    if os.path.exists(CONFIG_PATH):
+        with open(CONFIG_PATH, "r") as f:
+            try:
+                return json.load(f)
+            except:
+                return {}
+    return {}
+
+def save_config(config_data):
+    with open(CONFIG_PATH, "w") as f:
+        json.dump(config_data, f)
 
 # Page config
 st.set_page_config(
@@ -124,151 +139,15 @@ def normalize_text(text):
         return ""
     return "".join(c.lower() for c in str(text) if c.isalnum())
 
-def run_sync(drcsfa_path=None, csfa_path=None, metadata_path=None):
-    if drcsfa_path is None:
-        drcsfa_path = get_path("DRCSFA.xlsx")
-    if csfa_path is None:
-        csfa_path = get_path("CSFA Accumilative data.xlsx")
-    if metadata_path is None:
-        metadata_path = get_path("sync_metadata.json")
-
-    if os.path.exists(metadata_path):
-        with open(metadata_path, 'r') as f:
-            meta = json.load(f)
-    else:
-        meta = {"last_processed_drcsfa_id": 216}
-        
-    last_id = meta.get("last_processed_drcsfa_id", 216)
-    
-    if not os.path.exists(drcsfa_path):
-        return -1, f"Error: Source file '{drcsfa_path}' not found."
-    
-    df_source = pd.read_excel(drcsfa_path)
-    new_rows_df = df_source[df_source['ID'] > last_id]
-    if new_rows_df.empty:
-        return 0, "Already up to date. No new observations found in DRCSFA."
-        
-    if not os.path.exists(csfa_path):
-        return -1, f"Error: Accumulative sheet '{csfa_path}' not found."
-        
-    wb = openpyxl.load_workbook(csfa_path, data_only=False)
-    ws = wb['CSFA Accumilative data']
-    
-    target_row = 2
-    for r in range(2, ws.max_row + 1000):
-        val = ws.cell(row=r, column=3).value
-        if val is None or str(val).strip() == "":
-            target_row = r
-            break
-            
-    start_ln = ws.cell(row=target_row, column=1).value
-    if not isinstance(start_ln, (int, float)):
-        prev_val = ws.cell(row=target_row - 1, column=1).value
-        if isinstance(prev_val, (int, float)):
-            start_ln = int(prev_val) + 1
-        else:
-            start_ln = 1
-            
-    obs_groups = [
-        ('Contractor\xa0', 'Condition', 'Type of Violation', 'Severity Score', 'Violation Description', 'No of Good Citizen', 'No of Violators'),
-        ('Contractor\xa02', 'Condition2', 'Type of Violation2', 'Severity Score2', 'Violation Description2', 'No of Good Citizen2', 'No of Violators2'),
-        ('Contractor\xa03', 'Condition3', 'Type of Violation3', 'Severity Score3', 'Violation Description3', 'No of Good Citizen3', 'No of Violators3'),
-        ('Contractor\xa04', 'Condition4', 'Type of Violation4', 'Severity Score4', 'Violation Description4', 'No of Good Citizen4', 'No of Violators4'),
-        ('Contractor\xa05', 'Condition5', 'Type of Violation5', 'Severity Score5', 'Violation Description5', 'No of Good Citizen5', 'No of Violators5'),
-        ('Contractor\xa06', 'Condition6', 'Type of Violation6', 'Severity Score6', 'Violation Description6', 'No of Good Citizen6', 'No of Violators6'),
-        ('Contractor\xa07', 'Condition7', 'Type of Violation7', 'Severity Score7', 'Violation Description7', 'No of Good Citizen7', 'No of Violators7'),
-        ('Contractor\xa08', 'Condition8', 'Type of Violation8', 'Severity Score8', 'Violation Description8', 'No of Good Citizen8', 'No of Violators8'),
-        ('Contractor\xa09', 'Condition9', 'Type of Violation9', 'Severity Score9', 'Violation Description9', 'No of Good Citizen9', 'No of Violators9'),
-        ('Contractor\xa010', 'Condition10', 'Type of Violation10', 'Severity Score10', 'Violation Description10', 'No of Good Citizen10', 'No of Violators10'),
-    ]
-    
-    appended_count = 0
-    new_rows_df = new_rows_df.sort_values('ID')
-    
-    for idx, row in new_rows_df.iterrows():
-        raw_date = row.get('Date of Audit')
-        if pd.isna(raw_date):
-            raw_date = row.get('Start time')
-            
-        dt = pd.to_datetime(raw_date)
-        date_val = dt.to_pydatetime() if pd.notna(raw_date) else None
-        month_name = dt.strftime('%B') if pd.notna(raw_date) else ""
-        
-        zone = row.get('Zone', '')
-        
-        for g_idx, group in enumerate(obs_groups, 1):
-            col_contractor, col_condition, col_violation_type, col_severity, col_desc, col_good, col_violators = group
-            desc_val = row.get(col_desc)
-            
-            if pd.isna(desc_val) or str(desc_val).strip() == "":
-                continue
-                
-            contractor_val = row.get(col_contractor, '')
-            condition_val = str(row.get(col_condition, ''))
-            violation_type_val = str(row.get(col_violation_type, ''))
-            
-            raw_severity = str(row.get(col_severity, '0')).strip()
-            if "-" in raw_severity:
-                severity_val = raw_severity.split("-")[0].strip()
-            else:
-                severity_val = raw_severity
-                
-            try:
-                severity_val = int(float(severity_val))
-            except ValueError:
-                severity_val = 0
-                
-            good_val = row.get(col_good, 0)
-            violators_val = row.get(col_violators, 0)
-            
-            unsafe_cond = 1 if "unsafe condition" in condition_val.lower() else ""
-            unsafe_act = 1 if "unsafe act" in condition_val.lower() else ""
-            ppe_non_compliance = 1 if "ppe" in violation_type_val.lower() else ""
-            four_five_indicator = 1 if severity_val in [4, 5] else ""
-            num_violations = 1
-            vx_severity = severity_val
-            
-            ws.cell(row=target_row, column=1, value=start_ln)
-            ws.cell(row=target_row, column=2, value=predict_trend(desc_val))
-            ws.cell(row=target_row, column=3, value=str(desc_val).strip())
-            ws.cell(row=target_row, column=4, value="")
-            ws.cell(row=target_row, column=5, value="")
-            ws.cell(row=target_row, column=6, value=good_val if pd.notna(good_val) else 0)
-            ws.cell(row=target_row, column=7, value=violators_val if pd.notna(violators_val) else 0)
-            ws.cell(row=target_row, column=8, value=num_violations)
-            ws.cell(row=target_row, column=9, value=severity_val)
-            ws.cell(row=target_row, column=10, value=vx_severity)
-            ws.cell(row=target_row, column=11, value=four_five_indicator)
-            ws.cell(row=target_row, column=12, value=ppe_non_compliance)
-            ws.cell(row=target_row, column=13, value=unsafe_cond)
-            ws.cell(row=target_row, column=14, value=unsafe_act)
-            ws.cell(row=target_row, column=15, value=str(contractor_val).strip())
-            ws.cell(row=target_row, column=16, value="Pending")
-            ws.cell(row=target_row, column=17, value="")
-            ws.cell(row=target_row, column=18, value=str(zone).strip())
-            if date_val:
-                ws.cell(row=target_row, column=19, value=date_val)
-            else:
-                ws.cell(row=target_row, column=19, value="")
-            ws.cell(row=target_row, column=20, value=month_name)
-            
-            start_ln = int(start_ln) + 1
-            target_row += 1
-            appended_count += 1
-            
-    wb.save(csfa_path)
-    meta["last_processed_drcsfa_id"] = int(new_rows_df['ID'].max())
-    with open(metadata_path, 'w') as f:
-        json.dump(meta, f)
-        
-    return appended_count, f"Sync successful! Appended {appended_count} new observations from DRCSFA."
+# (DRCSFA sync logic removed - taking data directly from CSFA Accumulative only)
 
 # ----------------- LOAD & CLEAN ACCUMULATIVE DATA -----------------
 
 @st.cache_data(ttl=60)
 def load_data(csfa_path=None):
     if csfa_path is None:
-        csfa_path = get_path("CSFA Accumilative data.xlsx")
+        config = load_config()
+        csfa_path = config.get("csfa_path", get_path("CSFA Accumilative data.xlsx"))
 
     if not os.path.exists(csfa_path):
         return pd.DataFrame()
@@ -285,25 +164,38 @@ def load_data(csfa_path=None):
     df['Zone'] = df['Zone'].astype(str).str.strip()
     return df
 
-# Initialize Data
+# Initialize Data & Path Existence Check
 df_raw = load_data()
+config_data = load_config()
+current_configured_path = config_data.get("csfa_path", get_path("CSFA Accumilative data.xlsx"))
+path_exists = os.path.exists(current_configured_path)
 
 # ----------------- SIDEBAR -----------------
 
 st.sidebar.image(get_path("danone_logo.png"), use_container_width=True)
-st.sidebar.markdown("<h2 style='text-align: center; color: white; margin-top: 10px;'>⚙️ PIPELINE</h2>", unsafe_allow_html=True)
 
-# Sync Button
-if st.sidebar.button("🔄 Sync DRCSFA Form Data", use_container_width=True):
-    with st.spinner("Syncing latest observations..."):
-        count, msg = run_sync()
-        if count >= 0:
-            st.sidebar.success(msg)
-            st.cache_data.clear()
-            df_raw = load_data()
-            st.rerun()
-        else:
-            st.sidebar.error(msg)
+# Path Settings Configuration
+config = load_config()
+current_path = config.get("csfa_path", get_path("CSFA Accumilative data.xlsx"))
+
+st.sidebar.markdown("<h4 style='color: white; margin-top: 10px;'>📁 SETTINGS</h4>", unsafe_allow_html=True)
+excel_path_input = st.sidebar.text_input("Excel Path", value=current_path, help="Path to your local synced SharePoint CSFA Accumilative data.xlsx file")
+
+if excel_path_input != current_path:
+    if st.sidebar.button("💾 Save Excel Path", use_container_width=True):
+        config["csfa_path"] = excel_path_input
+        save_config(config)
+        st.cache_data.clear()
+        st.rerun()
+
+st.sidebar.markdown("<hr style='border-color: rgba(255,255,255,0.1);'>", unsafe_allow_html=True)
+st.sidebar.markdown("<h2 style='text-align: center; color: white;'>⚙️ CONTROLS</h2>", unsafe_allow_html=True)
+
+# Refresh Button
+if st.sidebar.button("🔄 Refresh Dashboard Data", use_container_width=True):
+    st.cache_data.clear()
+    df_raw = load_data()
+    st.rerun()
 
 st.sidebar.markdown("<hr style='border-color: rgba(255,255,255,0.1);'>", unsafe_allow_html=True)
 st.sidebar.markdown("<h4 style='color: white;'>🔍 FILTERS</h4>", unsafe_allow_html=True)
@@ -359,7 +251,10 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-if df_filtered.empty:
+if not path_exists:
+    st.error("⚠️ Excel file not found!")
+    st.info(f"The dashboard is trying to load: `{current_configured_path}`\n\nPlease ensure your local OneDrive/SharePoint sync folder path is correct and configure it in the sidebar.")
+elif df_filtered.empty:
     st.warning("⚠️ No safety observation data found for the selected date range. Please choose a broader window in the sidebar.")
 else:
     # ----------------- CALCULATIONS -----------------
