@@ -113,6 +113,117 @@ def render_donut_chart(compliance_val):
     )
     return fig
 
+def load_precalculated_ptw_metrics(ptw_source) -> Any:
+    """Loads pre-calculated metrics from the 'PTW Dashboard Data' sheet if it exists."""
+    if ptw_source is None:
+        return None
+    try:
+        xl = pd.ExcelFile(ptw_source)
+        if "PTW Dashboard Data" in xl.sheet_names:
+            df = xl.parse("PTW Dashboard Data")
+            
+            # Row 0 contains overall metrics
+            total_issued = int(df.iloc[0, 0]) if pd.notna(df.iloc[0, 0]) else 0
+            total_closed = int(df.iloc[0, 1]) if pd.notna(df.iloc[0, 1]) else 0
+            total_audited = int(df.iloc[0, 2]) if pd.notna(df.iloc[0, 2]) else 0
+            total_observations = int(df.iloc[0, 3]) if pd.notna(df.iloc[0, 3]) else 0
+            critical_observations = int(df.iloc[0, 4]) if pd.notna(df.iloc[0, 4]) else 0
+            
+            compliance_val = df.iloc[0, 5]
+            if pd.notna(compliance_val):
+                try:
+                    compliance = int(float(compliance_val))
+                except ValueError:
+                    compliance = int(float(str(compliance_val).replace('%', '').strip()))
+            else:
+                compliance = 100
+                
+            high_risk_issued = int(df.iloc[0, 6]) if pd.notna(df.iloc[0, 6]) else 0
+            high_risk_safely_executed = int(df.iloc[0, 7]) if pd.notna(df.iloc[0, 7]) else 0
+            high_risk_observations = int(df.iloc[0, 8]) if pd.notna(df.iloc[0, 8]) else 0
+            
+            # Top 3 violators
+            violators = []
+            for idx, r in enumerate([3, 4, 5]):
+                if r < len(df):
+                    val = df.iloc[r, 0]
+                    count = df.iloc[r, 1]
+                    if pd.notna(val) and str(val).strip() != "" and str(val).strip() != "0" and str(val).strip() != "nan":
+                        violators.append([idx + 1, str(val).strip(), int(count) if pd.notna(count) else 0])
+            
+            top3_obs_sum = sum(count for _, _, count in violators)
+            violators_contrib = int(top3_obs_sum / total_observations * 100) if total_observations > 0 else 0
+            
+            # Top 3 high risk observations
+            obs_counts = {}
+            if "HighRiskObs" in xl.sheet_names:
+                try:
+                    df_hr_obs = xl.parse("HighRiskObs")
+                    obs_col = [c for c in df_hr_obs.columns if "observation" in c.lower() and "categor" not in c.lower()]
+                    count_col = 'Unnamed: 3' if 'Unnamed: 3' in df_hr_obs.columns else 'Count'
+                    if obs_col and count_col in df_hr_obs.columns:
+                        for _, r in df_hr_obs.iterrows():
+                            o_val = r[obs_col[0]]
+                            c_val = r[count_col]
+                            if pd.notna(o_val) and pd.notna(c_val):
+                                try:
+                                    obs_counts[str(o_val).strip().lower()] = int(float(c_val))
+                                except ValueError:
+                                    pass
+                except Exception:
+                    pass
+                    
+            high_risk_obs = []
+            for idx, r in enumerate([3, 4, 5]):
+                if r < len(df):
+                    val = df.iloc[r, 2]
+                    if pd.notna(val) and str(val).strip() != "" and str(val).strip() != "nan":
+                        val_str = str(val).strip()
+                        count = obs_counts.get(val_str.lower(), 1)
+                        high_risk_obs.append([idx + 1, val_str, count])
+                        
+            # Top categories
+            category_counts = {}
+            if "PTW Audit" in xl.sheet_names:
+                try:
+                    df_audit_raw = xl.parse("PTW Audit")
+                    cat_cols = [c for c in df_audit_raw.columns if "Category" in c]
+                    for col in cat_cols:
+                        for val in df_audit_raw[col].dropna():
+                            val = str(val).strip()
+                            category_counts[val] = category_counts.get(val, 0) + 1
+                except Exception:
+                    pass
+                    
+            categories = []
+            for idx, r in enumerate([3, 4, 5]):
+                if r < len(df):
+                    val = df.iloc[r, 3]
+                    if pd.notna(val) and str(val).strip() != "" and str(val).strip() != "0" and str(val).strip() != "nan":
+                        val_str = str(val).strip()
+                        count = category_counts.get(val_str, 1)
+                        categories.append([idx + 1, val_str, count])
+                        
+            return {
+                'total_issued': total_issued,
+                'total_closed': total_closed,
+                'total_audited': total_audited,
+                'total_observations': total_observations,
+                'critical_observations': critical_observations,
+                'compliance': compliance,
+                'compliance_donut': compliance,
+                'high_risk_issued': high_risk_issued,
+                'high_risk_safely_executed': high_risk_safely_executed,
+                'high_risk_observations': high_risk_observations,
+                'violators': violators if violators else [[1, 'None', 0]],
+                'violators_contrib': violators_contrib,
+                'high_risk_obs': high_risk_obs if high_risk_obs else [[1, 'None', 0]],
+                'categories': categories if categories else [[1, 'None', 0]]
+            }
+    except Exception:
+        pass
+    return None
+
 # --- Core Dynamic Calculations ---
 def compute_ptw_metrics(df_ptw: pd.DataFrame, df_audit: pd.DataFrame) -> Dict[str, Any]:
     """Dynamically calculates PTW KPI metrics and tables from dataframes."""
@@ -253,22 +364,31 @@ def render_ptw_dashboard():
     
     path_exists = True
     
+    ptw_source_file = None
+    loaded_precalculated = False
+    
     if source_type == "aws":
-        aws_ptw = os.path.join(S3_CACHE_DIR, "PTW.xlsx")
-        aws_audit = os.path.join(S3_CACHE_DIR, "PTW Audit.xlsx")
+        aws_ptw = os.path.join(S3_CACHE_DIR, "PTW 1.xlsx")
+        aws_audit = os.path.join(S3_CACHE_DIR, "PTW 1.xlsx")
+        if not os.path.exists(aws_ptw):
+            aws_ptw = os.path.join(S3_CACHE_DIR, "PTW.xlsx")
+            aws_audit = os.path.join(S3_CACHE_DIR, "PTW Audit.xlsx")
+            
         df_ptw, df_audit = load_ptw_data(aws_ptw, aws_audit)
-        path_exists = os.path.exists(aws_ptw) and os.path.exists(aws_audit)
+        path_exists = os.path.exists(aws_ptw) or (os.path.exists(aws_ptw) and os.path.exists(aws_audit))
+        ptw_source_file = aws_ptw if path_exists else None
         
-    else:  # upload mode - render double file uploaders
-        uploaded_ptw = st.sidebar.file_uploader("Upload PTW Permits file (.xlsx)", type=["xlsx"])
-        uploaded_audit = st.sidebar.file_uploader("Upload PTW Audits file (.xlsx)", type=["xlsx"])
+    else:  # upload mode - render single file uploader
+        uploaded_ptw = st.sidebar.file_uploader("Upload PTW 1 Excel file (.xlsx)", type=["xlsx"])
         
-        if uploaded_ptw and uploaded_audit:
-            df_ptw, df_audit = load_ptw_data(uploaded_ptw, uploaded_audit)
+        if uploaded_ptw:
+            df_ptw, df_audit = load_ptw_data(uploaded_ptw, uploaded_ptw)
             path_exists = True
+            ptw_source_file = uploaded_ptw
         else:
             df_ptw, df_audit = pd.DataFrame(), pd.DataFrame()
             path_exists = False
+            ptw_source_file = None
 
     st.sidebar.markdown("<hr style='border-color: rgba(255,255,255,0.1);'>", unsafe_allow_html=True)
     st.sidebar.markdown("<h2 style='text-align: center; color: white;'>⚙️ CONTROLS</h2>", unsafe_allow_html=True)
@@ -277,9 +397,22 @@ def render_ptw_dashboard():
         st.cache_data.clear()
         st.rerun()
 
+    # Load metrics: try precalculated first, fallback to compute_ptw_metrics
+    metrics = None
+    if ptw_source_file:
+        metrics = load_precalculated_ptw_metrics(ptw_source_file)
+        if metrics is not None:
+            loaded_precalculated = True
+            
+    if metrics is None:
+        metrics = compute_ptw_metrics(df_ptw, df_audit)
+
     # Connection Status indicator in sidebar
-    if path_exists and not df_ptw.empty:
-        st.sidebar.success(f"✅ Excel Connected!\nParsed PTW ({len(df_ptw)} entries)\nParsed Audits ({len(df_audit)} entries)")
+    if path_exists and (loaded_precalculated or not df_ptw.empty):
+        if loaded_precalculated:
+            st.sidebar.success(f"✅ Excel Connected!\nLoaded pre-calculated data\nParsed PTW ({len(df_ptw)} entries)\nParsed Audits ({len(df_audit)} entries)")
+        else:
+            st.sidebar.success(f"✅ Excel Connected!\nParsed PTW ({len(df_ptw)} entries)\nParsed Audits ({len(df_audit)} entries)")
     else:
         st.sidebar.warning("⚠️ Excel Files Not Connected!")
 
@@ -302,11 +435,8 @@ def render_ptw_dashboard():
         st.warning("⚠️ AWS S3 local cache not found. Please click '☁️ Sync AWS' first in the sidebar to sync your files.")
         return
     elif source_type == "upload" and not path_exists:
-        st.warning("⚠️ Please upload both PTW Permits Excel and PTW Audits Excel files in the sidebar to render the dashboard.")
+        st.warning("⚠️ Please upload PTW 1 Excel file in the sidebar to render the dashboard.")
         return
-
-    # Compute metrics dynamically
-    metrics = compute_ptw_metrics(df_ptw, df_audit)
     
     # KPI Row 1
     col1, col2, col3, col4, col5, col6 = st.columns(6)

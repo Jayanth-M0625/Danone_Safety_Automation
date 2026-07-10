@@ -79,7 +79,16 @@ def load_ptw_data(ptw_source: Union[str, BytesIO], audit_source: Union[str, Byte
     df_audit = pd.DataFrame()
     
     try:
-        df_ptw = pd.read_excel(ptw_source)
+        if isinstance(ptw_source, (str, BytesIO)) or hasattr(ptw_source, 'read'):
+            try:
+                xl = pd.ExcelFile(ptw_source)
+                sheet_name = "PTW" if "PTW" in xl.sheet_names else xl.sheet_names[0]
+                df_ptw = xl.parse(sheet_name)
+            except Exception:
+                df_ptw = pd.read_excel(ptw_source)
+        else:
+            df_ptw = pd.read_excel(ptw_source)
+            
         df_ptw = clean_dataframe_columns(df_ptw)
         if 'PTW Date' in df_ptw.columns:
             df_ptw['PTW Date'] = pd.to_datetime(df_ptw['PTW Date'], errors='coerce')
@@ -95,7 +104,16 @@ def load_ptw_data(ptw_source: Union[str, BytesIO], audit_source: Union[str, Byte
         logger.error(f"Error parsing PTW Excel: {e}")
         
     try:
-        df_audit = pd.read_excel(audit_source)
+        if isinstance(audit_source, (str, BytesIO)) or hasattr(audit_source, 'read'):
+            try:
+                xl = pd.ExcelFile(audit_source)
+                sheet_name = "PTW Audit" if "PTW Audit" in xl.sheet_names else xl.sheet_names[0]
+                df_audit = xl.parse(sheet_name)
+            except Exception:
+                df_audit = pd.read_excel(audit_source)
+        else:
+            df_audit = pd.read_excel(audit_source)
+            
         df_audit = clean_dataframe_columns(df_audit)
         if 'Date' in df_audit.columns:
             df_audit['Date'] = pd.to_datetime(df_audit['Date'], errors='coerce')

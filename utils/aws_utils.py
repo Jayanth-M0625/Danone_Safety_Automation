@@ -115,8 +115,8 @@ def initialize_s3_cache_from_local() -> None:
     
     local_paths = {
         "csfa": os.path.join(BASE_DIR, "CSFA", "CSFA Accumilative data.xlsx"),
-        "ptw": os.path.join(BASE_DIR, "PTW", "PTW.xlsx"),
-        "ptw_audit": os.path.join(BASE_DIR, "PTW", "PTW Audit.xlsx"),
+        "ptw": os.path.join(BASE_DIR, "PTW", "PTW 1.xlsx"),
+        "ptw_audit": os.path.join(BASE_DIR, "PTW", "PTW 1.xlsx"),
         "workplan": os.path.join(BASE_DIR, "Workplan", "Himalaya Work Plan - Contractor Wise.xlsx"),
         "tools": os.path.join(BASE_DIR, "Tools and Tackles", "Master - tracker (contractor equipment) update 2026.xlsx")
     }

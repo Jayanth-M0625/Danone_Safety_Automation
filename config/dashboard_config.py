@@ -9,8 +9,8 @@ CONFIG_PATH = os.path.join(BASE_DIR, "config.json")
 
 # Defaults for Local Paths
 DEFAULT_CSFA_PATH = os.path.join(BASE_DIR, "CSFA", "CSFA Accumilative data.xlsx")
-DEFAULT_PTW_PATH = os.path.join(BASE_DIR, "PTW", "PTW.xlsx")
-DEFAULT_PTW_AUDIT_PATH = os.path.join(BASE_DIR, "PTW", "PTW Audit.xlsx")
+DEFAULT_PTW_PATH = os.path.join(BASE_DIR, "PTW", "PTW 1.xlsx")
+DEFAULT_PTW_AUDIT_PATH = os.path.join(BASE_DIR, "PTW", "PTW 1.xlsx")
 DEFAULT_WORKPLAN_PATH = os.path.join(BASE_DIR, "Workplan", "Himalaya Work Plan - Contractor Wise.xlsx")
 DEFAULT_TOOLS_PATH = os.path.join(BASE_DIR, "Tools and Tackles", "Master - tracker (contractor equipment) update 2026.xlsx")
 
@@ -21,8 +21,8 @@ os.makedirs(S3_CACHE_DIR, exist_ok=True)
 # Relative S3 File Keys (matching S3 folder structure)
 S3_KEYS = {
     "csfa": "CSFA/CSFA Accumilative data.xlsx",
-    "ptw": "PTW/PTW.xlsx",
-    "ptw_audit": "PTW/PTW Audit.xlsx",
+    "ptw": "PTW/PTW 1.xlsx",
+    "ptw_audit": "PTW/PTW 1.xlsx",
     "workplan": "Workplan/Himalaya Work Plan - Contractor Wise.xlsx",
     "tools": "Tools and Tackles/Master - tracker (contractor equipment) update 2026.xlsx"
 }
