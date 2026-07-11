@@ -6,7 +6,7 @@ This file serves as a handoff and context document for developer engineers and A
 
 ## 1. Project Overview
 
-This repository is a premium, enterprise-grade safety dashboard suite for **Danone**, built with **Streamlit**, **Pandas**, and **Plotly**. It visualizes safety audits, work permits, equipment inspections, and weekly safety work plans.
+This repository is a premium, enterprise-grade safety dashboard suite for **Danone**, built with **Streamlit**, **Pandas**, and **Plotly**. It visualizes safety audits, work permits, equipment inspections, and weekly safety work plans. It is integrated with AWS S3 (Simple Storage Service, a cloud-based storage service for storing files and datasets) for data synchronization.
 
 ---
 
@@ -36,6 +36,8 @@ This repository is a premium, enterprise-grade safety dashboard suite for **Dano
 │   └── s3_cache/             # Target folder for AWS S3 cached datasets
 │
 ├── app.py                    # Main app coordinator, styling injector, page router
+│   └── run_dashboard.bat     # Windows batch script to launch the local Streamlit dashboard
+│
 ├── aws_sync_upload.py        # Client Windows utility to sync local files to S3
 ├── config.json               # Shared dynamic settings for OneDrive/SharePoint paths
 └── requirements.txt          # Python dependencies
@@ -45,7 +47,7 @@ This repository is a premium, enterprise-grade safety dashboard suite for **Dano
 
 ## 3. Data Source Architecture
 
-Each of the four dashboards supports three distinct data sources loaded via the exact same processing pipeline in `utils/data_loaders.py`:
+Each of the dashboards supports three distinct data sources loaded via the exact same processing pipeline in `utils/data_loaders.py`:
 
 1. **Local Files (Default)**: Path configuration resolved dynamically via `config.json` (OneDrive/SharePoint synced paths) or falling back to default folders in the workspace.
 2. **AWS S3 Latest Data**: Triggered by the `[Sync AWS]` sidebar button. Downloads files from S3 into `data/s3_cache/` and caches them locally, rendering with S3 cached copies and writing timestamp metadata.
@@ -58,9 +60,9 @@ Each of the four dashboards supports three distinct data sources loaded via the 
 All pipelines are in `utils/data_loaders.py`:
 
 - **CSFA**: Parses `CSFA Accumilative data.xlsx` -> Sheet `CSFA Accumilative data`. Clean observations, dates, severity scores (1-5), and unsafe acts/conditions.
-- **PTW**: Parses `PTW.xlsx` (issued permits) and `PTW Audit.xlsx` (permits audited). Joins them on `PTW No` to calculate compliance (`(total_issued - total_observations)/total_issued * 100`), critical violations, and contractors.
+- **PTW**: Parses `PTW 1.xlsx` (containing both issued permits and audited permits sheets). Joins them on `PTW No` to calculate compliance (`(total_issued - total_observations)/total_issued * 100`), critical violations, and contractors.
 - **Tools & Tackles**: Loops through 9 sheets (`Power tools`, `Hand tools`, `PPE's`, etc.). Standardizes column headers at row index 1. Maps equipment condition to `Good` or `Rejected` and calculates inspection overdue dates.
-- **Work Plan**: Standardizes multiple contractor sheets (`GEA`, `SPX Flo`, etc.) by inspecting header formats at row index 0. Extracts HIRA/JSA JSA approvals and Method Statement yes/no, classifying actions into risk profiles.
+- **Work Plan**: Standardizes multiple contractor sheets (`GEA`, `SPX Flo`, etc.) by inspecting header formats at row index 0. Extracts HIRA/JSA approvals and Method Statement yes/no, classifying actions into risk profiles.
 
 ---
 

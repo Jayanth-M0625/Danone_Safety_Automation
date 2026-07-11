@@ -1,12 +1,12 @@
 # AWS Dashboard Integration & Setup Guide
 
-This guide explains how to connect the Danone Safety Dashboards Streamlit application to AWS S3 to sync the latest Excel datasets.
+This guide explains how to connect the Danone Safety Dashboards Streamlit application to AWS S3 (Simple Storage Service, a cloud-based storage service for storing files and datasets) to sync the latest Excel datasets.
 
 ---
 
 ## 1. AWS Credentials Configuration
 
-To enable S3 integration, the dashboard requires AWS credentials with read permissions (`s3:GetObject` and `s3:ListBucket`) on the target bucket.
+To enable S3 integration, the dashboard requires AWS credentials (configured via AWS IAM (Identity and Access Management, a service that helps manage permissions and access control for AWS resources securely)) with read permissions (`s3:GetObject` (the S3 permission action that allows downloading files from a bucket) and `s3:ListBucket` (the S3 permission action that allows listing the contents of a bucket)) on the target bucket.
 
 ### Streamlit Secrets Configuration (Recommended)
 For secure local execution and cloud deployment, Streamlit provides a built-in secrets manager. Create or edit the file `.streamlit/secrets.toml` in your project root:
@@ -43,8 +43,7 @@ s3://[your-bucket-name]/[S3_BASE_FOLDER]/
 │   └── CSFA Accumilative data.xlsx
 │
 ├── PTW/
-│   ├── PTW.xlsx
-│   └── PTW Audit.xlsx
+│   └── PTW 1.xlsx
 │
 ├── Tools and Tackles/
 │   └── Master - tracker (contractor equipment) update 2026.xlsx
@@ -69,7 +68,7 @@ When running the dashboard:
    - Write the current timestamp to `data/s3_cache/sync_metadata.json`.
    - Update the UI mode display showing the **Last Synced Timestamp**.
    - Render the visuals dynamically using the newly downloaded S3 cache files.
-4. If you wish to go back to local files or manual upload, select **📁 Load Local** or use the **📤 Upload Excel** drag-and-drop area.
+4. If you wish to go back to local files or manual upload, select use the **📤 Upload Excel** drag-and-drop area.
 
 ---
 
@@ -81,7 +80,7 @@ When running the dashboard:
 
 ### Problem: Dashboard says "S3 connection successful" but file download fails
 - **Reason**: The S3 keys do not match.
-- **Fix**: Ensure that the files are in the correct subfolders inside S3. E.g., make sure `PTW.xlsx` is under `safety_dashboards/PTW/PTW.xlsx`.
+- **Fix**: Ensure that the files are in the correct subfolders inside S3. E.g., make sure `PTW 1.xlsx` is under `safety_dashboards/PTW/PTW 1.xlsx`.
 
 ### Problem: How do I deploy the app to Streamlit Community Cloud?
 1. Deploy your git repository to Streamlit Cloud.

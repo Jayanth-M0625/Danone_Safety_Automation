@@ -1,6 +1,6 @@
 # AWS S3 Ingestion Tool - Setup and Configuration Guide
 
-This guide covers setting up and running the standalone Python utility `aws_sync_upload.py` to upload safety dashboards Excel files from a local Windows laptop to AWS S3.
+This guide covers setting up and running the standalone Python utility `aws_sync_upload.py` to upload safety dashboards Excel files from a local Windows laptop to AWS S3 (Simple Storage Service, a cloud-based storage service for storing files and datasets).
 
 ---
 
@@ -12,7 +12,7 @@ This guide covers setting up and running the standalone Python utility `aws_sync
 3. Select **Install Now** and follow the instructions.
 
 ### Step B: Install Package Requirements
-Open your Command Prompt (`cmd`) and install the AWS SDK for Python (`boto3`):
+Open your Command Prompt (`cmd`) and install the AWS SDK (Software Development Kit, a set of tools that developers use to integrate with AWS services) for Python, known as boto3 (the official AWS SDK for Python allowing programmatic access to S3):
 ```bash
 pip install boto3
 ```
@@ -37,8 +37,7 @@ pip install boto3
     "S3_BASE_FOLDER": "safety_dashboards",
     "FILE_PATHS": [
         "D:\\IITK pdfs\\Acads\\Intern stuff\\Danone\\Pojects Projects\\Safety automation\\Dashboards\\CSFA\\CSFA Accumilative data.xlsx",
-        "D:\\IITK pdfs\\Acads\\Intern stuff\\Danone\\Pojects Projects\\Safety automation\\Dashboards\\PTW\\PTW.xlsx",
-        "D:\\IITK pdfs\\Acads\\Intern stuff\\Danone\\Pojects Projects\\Safety automation\\Dashboards\\PTW\\PTW Audit.xlsx",
+        "D:\\IITK pdfs\\Acads\\Intern stuff\\Danone\\Pojects Projects\\Safety automation\\Dashboards\\PTW\\PTW 1.xlsx",
         "D:\\IITK pdfs\\Acads\\Intern stuff\\Danone\\Pojects Projects\\Safety automation\\Dashboards\\Tools and Tackles\\Master - tracker (contractor equipment) update 2026.xlsx",
         "D:\\IITK pdfs\\Acads\\Intern stuff\\Danone\\Pojects Projects\\Safety automation\\Dashboards\\Workplan\\Himalaya Work Plan - Contractor Wise.xlsx"
     ],
@@ -48,7 +47,7 @@ pip install boto3
 ```
 
 ### Configuration Parameters Explained:
-- **`AWS_ACCESS_KEY` / `AWS_SECRET_KEY`**: Your AWS IAM credentials with `s3:PutObject` permissions.
+- **`AWS_ACCESS_KEY` / `AWS_SECRET_KEY`**: Your AWS IAM (Identity and Access Management, a service that helps configure access control and permissions for AWS resources) credentials with `s3:PutObject` (an S3 permission action that allows uploading new files to a bucket) permissions.
 - **`AWS_BUCKET_NAME`**: Name of the target S3 bucket.
 - **`S3_BASE_FOLDER`**: The top-level folder prefix in your S3 bucket (e.g., `safety_dashboards`).
 - **`FILE_PATHS`**: List of direct paths to files you want synced. The folder hierarchy (e.g., `CSFA/`, `PTW/`) will be inferred from parent directories.
@@ -70,7 +69,7 @@ python aws_sync_upload.py
    ============================================================
    AWS SYNC UPLOAD COMPLETE SUMMARY
    ============================================================
-   Total Successful Uploads : 5
+   Total Successful Uploads : 4
    Total Failed Uploads     : 0
    Total Skipped Paths      : 0
    ============================================================
@@ -78,8 +77,7 @@ python aws_sync_upload.py
 2. Check the `aws_sync.log` file created in the same folder.
 3. Log into your **AWS Management Console**, navigate to the **S3 Bucket**, and verify that the files are present in the folder hierarchy matching the structure:
    - `s3://[YOUR-BUCKET]/safety_dashboards/CSFA/CSFA Accumilative data.xlsx`
-   - `s3://[YOUR-BUCKET]/safety_dashboards/PTW/PTW.xlsx`
-   - `s3://[YOUR-BUCKET]/safety_dashboards/PTW/PTW Audit.xlsx`
+   - `s3://[YOUR-BUCKET]/safety_dashboards/PTW/PTW 1.xlsx`
    - `s3://[YOUR-BUCKET]/safety_dashboards/Tools and Tackles/Master - tracker (contractor equipment) update 2026.xlsx`
    - `s3://[YOUR-BUCKET]/safety_dashboards/Workplan/Himalaya Work Plan - Contractor Wise.xlsx`
 

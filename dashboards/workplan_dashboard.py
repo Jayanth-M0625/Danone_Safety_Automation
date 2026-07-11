@@ -210,14 +210,11 @@ def compute_workplan_metrics(df: pd.DataFrame) -> Dict[str, Any]:
                 
             # Count critical controls (items in Critical Activities separated by lines)
             items = [x for x in crit_text.split('\n') if x.strip() and not x.strip().lower().startswith('no')]
-            num_controls = len(items) if items else 3
+            num_controls = len(items) if items else 0
             
             cats[cat]["identified"] += num_controls
             if verified:
                 cats[cat]["ready"] += num_controls
-            else:
-                # partial controls
-                cats[cat]["ready"] += int(0.2 * num_controls)
                 
             if is_high_risk:
                 cats[cat]["high_risk"] += 1

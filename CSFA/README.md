@@ -1,67 +1,35 @@
-# Contractor Safety Field Audits Dashboard & Pipeline
+# Contractor Safety Field Audits (CSFA) Dashboard
 
-This repository contains the safety field audits dashboard and synchronization pipeline built for the safety automation project. It bridges the gap between raw Google/Microsoft Form data (`DRCSFA.xlsx`) and the cleaned analysis dataset (`CSFA Accumilative data.xlsx`) that supports the live dashboard metrics.
+This folder contains the datasets and assets supporting the CSFA (Contractor Safety Field Audits) Dashboard page in the safety dashboards application.
 
-## Project Structure
+## Directory Contents
 
-- **[app.py](file:///d:/IITK%20pdfs/Acads/Intern%20stuff/Danone/Pojects%20Projects/Safety%20automation/Dashboards/app.py)**: The main Streamlit application containing the dashboard calculations, Plotly charts, and the data synchronization logic.
-- **[trend_classifier_ml.py](file:///d:/IITK%20pdfs/Acads/Intern%20stuff/Danone/Pojects%20Projects/Safety%20automation/Dashboards/trend_classifier_ml.py)**: Placeholder module for predicting observation trends. Uses rule-based or empty-string fallbacks when a trained model is missing, and integrates with the sync pipeline to auto-classify categories when a model is trained.
-- **[ml_instructions.md](file:///d:/IITK%20pdfs/Acads/Intern%20stuff/Danone/Pojects%20Projects/Safety%20automation/Dashboards/ml_instructions.md)**: Guide on how to load historical Excel observations, train a classification model on Google Colab, save the trained model as `trend_model.pkl`, and drop it in this folder.
-- **[sync_metadata.json](file:///d:/IITK%20pdfs/Acads/Intern%20stuff/Danone/Pojects%20Projects/Safety%20automation/Dashboards/sync_metadata.json)**: Tracks the last synchronized row ID from `DRCSFA.xlsx` to prevent duplicates.
-- **[CSFA Accumilative data.xlsx](file:///d:/IITK%20pdfs/Acads/Intern%20stuff/Danone/Pojects%20Projects/Safety%20automation/Dashboards/CSFA%20Accumilative%20data.xlsx)**: The historical cleaned dataset containing manually classified trends and other observation dimensions.
-- **[DRCSFA.xlsx](file:///d:/IITK%20pdfs/Acads/Intern%20stuff/Danone/Pojects%20Projects/Safety%20automation/Dashboards/DRCSFA.xlsx)**: The raw sheet containing form responses containing multiple contractor observations per row.
+- **`CSFA Accumilative data.xlsx`**: The primary Excel dataset containing cleaned and processed safety audit observations, dates, severity scores (ranging 1-5), zones, and unsafe acts/conditions.
+- **`danone_logo.png`**: Logo asset used in the dashboard interface.
+- **`severity_dashboard.png`**: Reference image showing the expected layout and style of the dashboard UI.
+- **`sync_metadata.json`**: An obsolete metadata file from previous implementations (which tracked sync IDs). It is not active in the current data source loader.
 
 ---
 
-## How It Works (The Pipeline)
+## How It Works
 
-1. **New Observations Added**: Audits are submitted through the forms, appending raw responses to `DRCSFA.xlsx`.
-2. **Synchronization**: Inside the Streamlit dashboard, the user clicks **🔄 Sync DRCSFA Form Data** (or it runs behind the scenes).
-   - The sync checks if `DRCSFA.xlsx` contains any rows with `ID` > the ID stored in `sync_metadata.json`.
-   - New rows are expanded (since there are up to 10 observations per row) and cleaned.
-   - Cleansed observations are appended to `CSFA Accumilative data.xlsx` starting at the first row with an empty description.
-   - A sequential serial number is assigned, the status is set to `Pending`, and the `Trend` is set using the ML model if `trend_model.pkl` is available, otherwise left blank.
-   - The metadata file is updated with the new maximum processed ID.
-3. **Manual Trend Classification**: 
-   - Since ML classification is currently skipped, newly added rows will have a blank `Trend` column.
-   - The dashboard includes a **Data Quality Helper Table** at the bottom showing any rows missing a `Trend` classification.
-   - The team opens the `CSFA Accumilative data.xlsx` Excel file, looks at these rows, and types the appropriate category (e.g. `PPE`, `Housekeeping`, `Work at Height`, etc.) in Column B.
-4. **Live Dashboard Rendering**: The dashboard reads directly from the cleaned `CSFA Accumilative data.xlsx` sheet and recalculates all metrics and charts in real-time, matching the categories, averages, and ratio gauges from `severity_dashboard.png`.
+1. **Data Source Resolution**: The dashboard loads safety field audit data from one of three sources (selected via the sidebar in the dashboard interface):
+   - **Local File (Default)**: Resolves to `CSFA Accumilative data.xlsx` in this folder.
+   - **AWS S3 Cache**: Clicking **☁️ Sync AWS** downloads the latest `CSFA Accumilative data.xlsx` from AWS S3 (Simple Storage Service, a cloud-based storage service for storing files and datasets) into the cache directory (`data/s3_cache/`) and renders it.
+   - **Uploaded Excel**: Users can upload custom `.xlsx` files directly through the **📤 Upload Excel** component to visualize custom data on the fly.
+   
+2. **Metrics Sourced and Calculated**:
+   - **Total No. of Contractors**: Count of unique active companies, excluding standard non-contractor entries (like general, common area, etc.).
+   - **Average Manpower / Day**: Dynamic average manpower value specified via a sidebar slider (defaults to 168).
+   - **Site Severity Score**: Mean severity score of observations recorded during the filtered date range.
+   - **Total High Severity Observations**: Count of records with a severity score of 4 or 5.
+   - **Observations / Day**: High severity observations divided by unique audit dates.
+   - **Closure Rate**: Percentage of high severity observations marked as `Closed` (case-insensitive).
+   - **Unsafe Act / Condition Ratio**: Sum of unsafe acts divided by the sum of unsafe conditions.
 
----
-
-## Metrics Sourced and Calculated
-
-All metrics are calculated dynamically over the selected date range:
-- **Total No. of Contractors**: Count of unique active companies, filtering out note rows.
-- **Average Manpower / Day**: Adjustable dynamic sidebar input (defaults to 168).
-- **Site Severity Score**: Average severity score of the observations in the date range.
-- **Total High Severity Observations**: Count of observations with severity 4 or 5.
-- **Observations / Day**: Total high severity observations / count of unique audit dates.
-- **Closure Rate**: Percentage of high severity observations marked as `Closed` (case-insensitive).
-- **Unsafe Act / Condition Ratio**: Sum of `unsafe acts` / sum of `unsafe Condes`.
-
----
-
-## Future ML Model Integration
-
-When you are ready to train the ML model for automatic trend classification:
-1. Open the [ml_instructions.md](file:///d:/IITK%20pdfs/Acads/Intern%20stuff/Danone/Pojects%20Projects/Safety%20automation/Dashboards/ml_instructions.md) file and follow the Google Colab training guide.
-2. Download the resulting `trend_model.pkl` file.
-3. Save `trend_model.pkl` in this directory.
-4. The dashboard's sync function will automatically detect the file and use it to predict the category for all future synchronized observations.
-
----
-
-## Running the Dashboard Locally
-
-Make sure the required dependencies are installed:
-```bash
-pip install streamlit openpyxl pandas plotly
-```
-
-Run the Streamlit application:
-```bash
-streamlit run app.py
-```
-The application will open in your browser, typically at `http://localhost:8501`.
+3. **Visualizations**:
+   - **Top Observation Categories**: Horizontal bar chart showing counts of observation trends/categories (e.g. PPE, Housekeeping).
+   - **Audit Distribution by Zone**: Bar chart representing audit counts per site zone.
+   - **Monthly Observation Trend**: Line chart illustrating monthly observation counts.
+   - **Zone Safety Score**: Matrix view of zone compliance and risk metrics.
+   - **Data Quality Helper Table**: Displays rows that are missing key classification labels (like 'Trend') to help data administrators identify records that require manual updates.
