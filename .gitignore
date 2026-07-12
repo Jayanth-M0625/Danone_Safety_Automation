@@ -1,1 +1,6 @@
 .streamlit/secrets.toml
+__pycache__/
+*.pyc
+dashboards/__pycache__/
+utils/__pycache__/
+data/s3_cache/

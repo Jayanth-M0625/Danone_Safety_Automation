@@ -41,59 +41,81 @@ STATIC_PTW = {
 }
 
 # --- HTML Rendering Helpers ---
-def render_kpi_metric(title, emoji, value, color, subtitle=None):
-    sub_html = ""
-    if subtitle:
-        badge_bg = "#e8f5e9" if "▲" in subtitle or "✅" in subtitle or "+" in subtitle else "#f1f5f9"
-        badge_text = "#2e7d32" if "▲" in subtitle or "✅" in subtitle or "+" in subtitle else "#475569"
-        sub_html = f"<div style='font-size:10px; font-weight:600; color:{badge_text}; background-color:{badge_bg}; padding:2px 8px; border-radius:4px; margin-top:6px; display:inline-block;'>{subtitle}</div>"
-        
-    html = f"""<div style="text-align: left; display: flex; flex-direction: column; justify-content: space-between; height: 120px; font-family: 'Danone One', 'Inter', -apple-system, sans-serif; padding: 5px 0;">
-<div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
-<div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.3; max-width: 80%;">{title}</div>
-<div style="font-size: 14px; background-color: #f8fafc; width: 26px; height: 26px; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">{emoji}</div>
-</div>
-<div>
-<div style="font-size: 26px; font-weight: 800; color: {color}; line-height: 1.1; letter-spacing: -0.5px;">{value}</div>
-{sub_html}
-</div>
-</div>"""
-    st.markdown(html, unsafe_allow_html=True)
+def render_html(html_str):
+    """Renders HTML directly to Streamlit, bypassing markdown parsing completely to avoid code block issues."""
+    st.html(html_str)
+
+def pad_rows_to_three(rows):
+    """Pads list of rows to exactly 3 elements for layout symmetry and vertical alignment."""
+    padded = [list(r) for r in rows]
+    while len(padded) < 3:
+        next_idx = len(padded) + 1
+        padded.append([next_idx, "", ""])
+    return padded
+
+def render_kpi_metric(title, emoji, value, accent_color, badge_bg, badge_border):
+    """Renders a beautifully styled KPI card matching the CSFA dashboard styling with high contrast text."""
+    html = f"""
+    <div style="background-color: #ffffff; border-radius: 12px; padding: 15px; border: 1px solid #cbd5e1; box-shadow: 0 4px 12px rgba(0,34,86,0.06); display: flex; align-items: center; gap: 12px; height: 105px; position: relative;">
+        <div style="background-color: {badge_bg}; width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; border: 1px solid {badge_border};">{emoji}</div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center;">
+            <div style="font-size: 11px; font-weight: 900; color: #1e293b; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.2;">{title}</div>
+            <div style="font-size: 22px; font-weight: 950; color: {accent_color}; line-height: 1; margin-top: 4px;">{value}</div>
+            <div style="width: 25px; height: 3px; background-color: {accent_color}; border-radius: 2px; margin-top: 5px;"></div>
+        </div>
+    </div>
+    """
+    render_html(html)
 
 def generate_html_table(title, headers, rows):
-    header_cols_html = "".join(f"<th style='background-color:#002256; color:white; padding:8px 10px; border: 1px solid #e2e8f0; text-align:center; font-size:12px; font-weight:700; text-transform:uppercase;'>{h}</th>" for h in headers)
-    
+    """Generates an HTML table styled identically to the CSFA dashboard tables (dark-blue headers, bold text)."""
+    header_cols_html = ""
+    for idx, h in enumerate(headers):
+        border_radius = ""
+        if idx == 0:
+            border_radius = "border-top-left-radius: 6px; border-bottom-left-radius: 6px;"
+        elif idx == len(headers) - 1:
+            border_radius = "border-top-right-radius: 6px; border-bottom-right-radius: 6px;"
+        header_cols_html += f"<th style='padding: 10px; font-weight: 800; border: none; text-align: center; {border_radius}'>{h}</th>"
+        
     rows_html = ""
-    for r in rows:
+    for r_idx, r in enumerate(rows):
+        bg_color = "#ffffff" if r_idx % 2 == 0 else "#f8fafc"
         row_cols_html = ""
-        for i, val in enumerate(r):
-            align = "center" if i == 0 or isinstance(val, (int, float)) or (isinstance(val, str) and val.isdigit()) else "left"
-            row_cols_html += f"<td style='padding:8px 10px; border: 1px solid #e2e8f0; text-align:{align}; font-size:12.5px; color:#334155; font-family:\"Danone One\", \"Inter\", sans-serif;'>{val}</td>"
-        rows_html += f"<tr>{row_cols_html}</tr>"
+        for c_idx, val in enumerate(r):
+            align = "center" if c_idx == 0 or isinstance(val, (int, float)) or (isinstance(val, str) and val.isdigit()) else "left"
+            weight = "800" if c_idx == 0 or (c_idx == len(r) - 1) else "700"
+            row_cols_html += f"<td style='padding: 10px; text-align: {align}; font-weight: {weight}; border: none;'>{val}</td>"
+        rows_html += f"<tr style='background-color: {bg_color}; border-bottom: 1px solid #cbd5e1; font-size: 12px; color: #0f172a;'>{row_cols_html}</tr>"
         
     html = f"""
-    <div style='margin-bottom:20px; border-radius:8px; overflow:hidden; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);'>
-        <div style='background-color:#002256; color:white; padding:10px 12px; font-size:13px; font-weight:700; text-align:center; letter-spacing:0.5px; text-transform:uppercase; font-family:\"Danone One\", \"Inter\", sans-serif;'>
+    <div style="background-color: #ffffff; border-radius: 12px; border: 1px solid #cbd5e1; box-shadow: 0 4px 12px rgba(0,34,86,0.06); padding: 18px; margin-bottom: 20px; font-family: 'Inter', sans-serif;">
+        <h4 style="margin: 0; padding-bottom: 10px; border-bottom: 2px solid #0033a0; color: #002060; font-weight: 900; font-size: 14px; text-transform: uppercase; display: flex; align-items: center; gap: 8px;">
             {title}
+        </h4>
+        <div style="margin-top: 15px; overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                <thead>
+                    <tr style="background-color: #0b3c95; color: #ffffff; font-size: 11px;">
+                        {header_cols_html}
+                    </tr>
+                </thead>
+                <tbody>
+                    {rows_html}
+                </tbody>
+            </table>
         </div>
-        <table style='width:100%; border-collapse:collapse; background-color:#ffffff;'>
-            <thead>
-                <tr>{header_cols_html}</tr>
-            </thead>
-            <tbody>
-                {rows_html}
-            </tbody>
-        </table>
     </div>
     """
     return html
 
 def render_donut_chart(compliance_val):
+    """Renders a high contrast compliance donut chart with bold/dark center labels."""
     fig = go.Figure(data=[go.Pie(
         labels=['Compliance', 'Gap'],
         values=[compliance_val, max(0, 100 - compliance_val)],
         hole=.7,
-        marker=dict(colors=['#10b981', '#f1f5f9']),
+        marker=dict(colors=['#22c55e', '#e2e8f0']),
         textinfo='none',
         hoverinfo='label+percent'
     )])
@@ -101,10 +123,9 @@ def render_donut_chart(compliance_val):
     fig.update_layout(
         showlegend=False,
         annotations=[dict(
-            text=f"<span style='font-size:32px; font-weight:800; color:#10b981; font-family:\"Danone One\", Inter, sans-serif;'>{compliance_val}%</span>",
+            text=f"<span style='font-size:32px; font-weight:950; color:#16a34a; font-family:\"Inter\", sans-serif;'>{compliance_val}%</span>",
             x=0.5, y=0.5,
-            showarrow=False,
-            font=dict(size=20)
+            showarrow=False
         )],
         margin=dict(l=10, r=10, t=10, b=10),
         height=180,
@@ -355,7 +376,7 @@ def compute_ptw_metrics(df_ptw: pd.DataFrame, df_audit: pd.DataFrame) -> Dict[st
 
 # --- Main Render ---
 def render_ptw_dashboard():
-    # Render Data Source Selector in Sidebar
+    # Render Data Source Selector in Sidebar (Toggled local file uploader button)
     source_type = render_source_selector("ptw")
     
     config = load_config()
@@ -363,7 +384,6 @@ def render_ptw_dashboard():
     current_ptw_audit_path = config.get("ptw_audit_path", DEFAULT_PTW_AUDIT_PATH)
     
     path_exists = True
-    
     ptw_source_file = None
     loaded_precalculated = False
     
@@ -378,10 +398,9 @@ def render_ptw_dashboard():
         path_exists = os.path.exists(aws_ptw) or (os.path.exists(aws_ptw) and os.path.exists(aws_audit))
         ptw_source_file = aws_ptw if path_exists else None
         
-    else:  # upload mode - render single file uploader
-        uploaded_ptw = st.sidebar.file_uploader("Upload PTW 1 Excel file (.xlsx)", type=["xlsx"])
-        
-        if uploaded_ptw:
+    else:  # upload mode - fetch uploaded file from session state
+        uploaded_ptw = st.session_state.get("ptw_file")
+        if uploaded_ptw is not None:
             df_ptw, df_audit = load_ptw_data(uploaded_ptw, uploaded_ptw)
             path_exists = True
             ptw_source_file = uploaded_ptw
@@ -418,7 +437,7 @@ def render_ptw_dashboard():
 
     date_display_str = "Q2 FY26"
     
-    st.markdown(f"""
+    header_html = f"""
     <div class="dashboard-header">
         <div class="header-title-box">
             <div class="header-main-title">WORK PERMIT DASHBOARD - (ACTIONS ON HIGH-RISK CONTRACTORS & IMPROVING AUDIT COMPLIANCE)</div>
@@ -429,7 +448,8 @@ def render_ptw_dashboard():
             <div class="header-info-date">📅 {date_display_str}</div>
         </div>
     </div>
-    """, unsafe_allow_html=True)
+    """
+    render_html(header_html)
 
     if source_type == "aws" and not path_exists:
         st.warning("⚠️ AWS S3 local cache not found. Please click '☁️ Sync AWS' first in the sidebar to sync your files.")
@@ -438,46 +458,41 @@ def render_ptw_dashboard():
         st.warning("⚠️ Please upload PTW 1 Excel file in the sidebar to render the dashboard.")
         return
     
-    # KPI Row 1
+    # ── KPI Row 1 (Beautified to match CSFA) ──────────────────────────────────
     col1, col2, col3, col4, col5, col6 = st.columns(6)
     with col1:
-        with st.container(border=True):
-            render_kpi_metric("No. Of work permits issued", "📋", f"{metrics['total_issued']:,}", "#0033a0")
+        render_kpi_metric("No. Of work permits issued", "📋", f"{metrics['total_issued']:,}", "#0033a0", "#eef2ff", "#bfdbfe")
     with col2:
-        with st.container(border=True):
-            render_kpi_metric("No. Of work permits closed", "✅", f"{metrics['total_closed']:,}", "#27ae60")
+        render_kpi_metric("No. Of work permits closed", "✅", f"{metrics['total_closed']:,}", "#27ae60", "#f0fdf4", "#bbf7d0")
     with col3:
-        with st.container(border=True):
-            render_kpi_metric("No. Of Work permits Audited", "🔍", f"{metrics['total_audited']:,}", "#8e24aa")
+        render_kpi_metric("No. Of Work permits Audited", "🔍", f"{metrics['total_audited']:,}", "#8e24aa", "#faf5ff", "#e9d5ff")
     with col4:
-        with st.container(border=True):
-            render_kpi_metric("No. Of observations", "💬", f"{metrics['total_observations']:,}", "#e67e22")
+        render_kpi_metric("No. Of observations", "💬", f"{metrics['total_observations']:,}", "#e67e22", "#fff7ed", "#ffedd5")
     with col5:
-        with st.container(border=True):
-            render_kpi_metric("Critical Observations", "⚠️", f"{metrics['critical_observations']:,}", "#fa5252")
+        render_kpi_metric("Critical Observations", "⚠️", f"{metrics['critical_observations']:,}", "#fa5252", "#fff5f5", "#fca5a5")
     with col6:
-        with st.container(border=True):
-            render_kpi_metric("Compliance", "📊", f"{metrics['compliance']:.0f}%", "#10b981")
+        render_kpi_metric("Compliance", "📊", f"{metrics['compliance']:.0f}%", "#10b981", "#ecfdf5", "#a7f3d0")
             
-    # KPI Row 2
-    row2_col1, row2_col2, row2_col3, _, _, _ = st.columns(6)
+    st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
+            
+    # ── KPI Row 2 (Balanced to fill the entire row width) ─────────────────────
+    row2_col1, row2_col2, row2_col3 = st.columns(3)
     with row2_col1:
-        with st.container(border=True):
-            render_kpi_metric("No. of high Risk permits issued", "👷", f"{metrics['high_risk_issued']:,}", "#0f766e")
+        render_kpi_metric("No. of high Risk permits issued", "👷", f"{metrics['high_risk_issued']:,}", "#0f766e", "#f0fdfa", "#99f6e4")
     with row2_col2:
-        with st.container(border=True):
-            render_kpi_metric("High Risk permits Safely Executed", "✅", f"{metrics['high_risk_safely_executed']:,}", "#27ae60")
+        render_kpi_metric("High Risk permits Safely Executed", "✅", f"{metrics['high_risk_safely_executed']:,}", "#27ae60", "#f0fdf4", "#bbf7d0")
     with row2_col3:
-        with st.container(border=True):
-            render_kpi_metric("No. Of Observations in High-Risk permits", "❗", f"{metrics['high_risk_observations']:,}", "#e11d48")
+        render_kpi_metric("No. Of Observations in High-Risk permits", "❗", f"{metrics['high_risk_observations']:,}", "#e11d48", "#fff5f5", "#fca5a5")
             
-    # Grid Row 3
+    st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
+            
+    # ── Grid Row 3 ────────────────────────────────────────────────────────────
     left_col, right_col = st.columns([1, 1.2])
     
     with left_col:
         # Compliance donut card
         with st.container(border=True):
-            st.markdown("<h4 style='margin:0; padding-bottom:8px; border-bottom:2px solid #002060; color:#002060; font-weight:800; font-size:14px; text-transform:uppercase;'>🎯 COMPLIANCE</h4>", unsafe_allow_html=True)
+            st.markdown("<h4 style='margin:0; padding-bottom:8px; border-bottom:2px solid #0033a0; color:#002060; font-weight:900; font-size:16.5px; text-transform:uppercase;'>🎯 COMPLIANCE</h4>", unsafe_allow_html=True)
             
             c_col1, c_col2 = st.columns([1, 1])
             with c_col1:
@@ -485,45 +500,45 @@ def render_ptw_dashboard():
                 st.plotly_chart(fig_donut, use_container_width=True, config={'displayModeBar': False})
             with c_col2:
                 formula_html = f"""
-                <div style="display: flex; flex-direction: column; justify-content: center; height: 100%; padding-left: 10px; font-family: 'Outfit', sans-serif; height: 180px;">
-                    <div style="font-size: 11.5px; color: #5a6b82; margin-bottom: 8px; font-weight: 600;">Compliance is calculated as:</div>
-                    <div style="display: flex; align-items: center; font-size: 13.5px; font-weight: bold; color: #0f2c59;">
+                <div style="display: flex; flex-direction: column; justify-content: center; height: 180px; padding-left: 10px; font-family: 'Inter', sans-serif;">
+                    <div style="font-size: 13.5px; color: #1e293b; margin-bottom: 8px; font-weight: 800;">Compliance is calculated as:</div>
+                    <div style="display: flex; align-items: center; font-size: 16px; font-weight: 900; color: #002256;">
                         <div style="display: flex; flex-direction: column; align-items: center; margin-right: 8px;">
-                            <div style="border-bottom: 2px solid #0f2c59; padding-bottom: 4px; text-align: center; width: 100%;">
+                            <div style="border-bottom: 2px solid #002256; padding-bottom: 4px; text-align: center; width: 100%;">
                                 {metrics['total_issued']} - {metrics['total_observations']}
                             </div>
                             <div style="padding-top: 4px; text-align: center; width: 100%;">
                                 {metrics['total_issued']}
                             </div>
                         </div>
-                        <div style="font-size: 15px; font-weight: 800; margin-left: 5px;">× 100</div>
+                        <div style="font-size: 18.5px; font-weight: 900; margin-left: 5px;">× 100</div>
                     </div>
                 </div>
                 """
-                st.markdown(formula_html, unsafe_allow_html=True)
+                render_html(formula_html)
         
         # Top Violators table
         violator_title = f"TOP 3 VIOLATORS – CONTRIBUTING {metrics['violators_contrib']}%"
         violators_html = generate_html_table(
             violator_title,
             ["#", "CONTRACTOR", "NO. OF OBSERVATIONS"],
-            metrics['violators']
+            pad_rows_to_three(metrics['violators'][:3])
         )
-        st.markdown(violators_html, unsafe_allow_html=True)
+        render_html(violators_html)
         
     with right_col:
         # Top High Risk Observations table
         hr_obs_html = generate_html_table(
             "TOP 3 HIGH RISK OBSERVATIONS",
             ["#", "OBSERVATION", "NO. OF OCCURRENCES"],
-            metrics['high_risk_obs']
+            pad_rows_to_three(metrics['high_risk_obs'][:3])
         )
-        st.markdown(hr_obs_html, unsafe_allow_html=True)
+        render_html(hr_obs_html)
         
         # Categories of Violation table
         categories_html = generate_html_table(
             "CATEGORIES OF VIOLATION",
             ["#", "CATEGORY", "NO. OF OBSERVATIONS"],
-            metrics['categories']
+            pad_rows_to_three(metrics['categories'][:3])
         )
-        st.markdown(categories_html, unsafe_allow_html=True)
+        render_html(categories_html)
