@@ -165,7 +165,7 @@ def render_tools_tackles_dashboard():
                 fig_cat.update_layout(
                     margin=dict(l=5, r=40, t=5, b=5), height=260,
                     xaxis=dict(showgrid=True, gridcolor="#f1f5f9", showticklabels=False),
-                    yaxis=dict(showgrid=False, tickfont=dict(size=12, color="#0f172a", weight="bold")),
+                    yaxis=dict(showgrid=False, tickfont=dict(size=12, color="#0f172a")),
                     plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
                 )
                 st.plotly_chart(fig_cat, use_container_width=True, config={"displayModeBar": False})
@@ -199,9 +199,9 @@ def render_tools_tackles_dashboard():
                 fig_cond.update_layout(
                     barmode="stack",
                     margin=dict(l=5, r=10, t=5, b=5), height=260,
-                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(color="#0f172a", weight="bold")),
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(color="#0f172a")),
                     xaxis=dict(showgrid=True, gridcolor="#f1f5f9"),
-                    yaxis=dict(showgrid=False, tickfont=dict(size=11, color="#0f172a", weight="bold")),
+                    yaxis=dict(showgrid=False, tickfont=dict(size=11, color="#0f172a")),
                     plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
                 )
                 st.plotly_chart(fig_cond, use_container_width=True, config={"displayModeBar": False})

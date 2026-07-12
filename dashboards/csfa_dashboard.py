@@ -266,9 +266,9 @@ def render_csfa_dashboard():
                     paper_bgcolor='rgba(0,0,0,0)',
                     font=dict(family="Inter, sans-serif"),
                     xaxis=dict(showgrid=True, gridcolor="#e2e8f0"),
-                    yaxis=dict(showgrid=False, tickfont=dict(size=11, color="#0f172a", weight="bold"))
+                    yaxis=dict(showgrid=False, tickfont=dict(size=11, color="#0f172a"))
                 )
-                fig_trends.update_traces(textposition='outside', textfont=dict(size=11, color="#000000", weight="bold"))
+                fig_trends.update_traces(textposition='outside', textfont=dict(size=11, color="#000000"))
                 st.plotly_chart(fig_trends, use_container_width=True, config={'displayModeBar': False})
             else:
                 st.markdown("<div style='height:240px; display:flex; align-items:center; justify-content:center; color:#0f172a; font-size:14px; font-weight:bold;'>No classified Trend data in this date range.</div>", unsafe_allow_html=True)
@@ -374,7 +374,7 @@ def render_csfa_dashboard():
                     orientation='h',
                     text=zone_severity['Avg Severity'].apply(lambda x: f"{x:.1f}")
                 )
-                fig_zones.update_traces(marker_color=colors_zones, textposition='outside', textfont=dict(size=11, color="#000000", weight="bold"))
+                fig_zones.update_traces(marker_color=colors_zones, textposition='outside', textfont=dict(size=11, color="#000000"))
                 fig_zones.update_layout(
                     margin=dict(l=10, r=25, t=10, b=10),
                     height=240,
@@ -384,7 +384,7 @@ def render_csfa_dashboard():
                     paper_bgcolor='rgba(0,0,0,0)',
                     font=dict(family="Inter, sans-serif"),
                     xaxis=dict(range=[0, 5], dtick=1, showgrid=True, gridcolor="#e2e8f0"),
-                    yaxis=dict(showgrid=False, tickfont=dict(size=11, color="#0f172a", weight="bold"))
+                    yaxis=dict(showgrid=False, tickfont=dict(size=11, color="#0f172a"))
                 )
                 st.plotly_chart(fig_zones, use_container_width=True, config={'displayModeBar': False})
             else:
@@ -413,7 +413,7 @@ def render_csfa_dashboard():
                     orientation='h',
                     text=contractor_severity['Avg Severity'].apply(lambda x: f"{x:.1f}")
                 )
-                fig_contractors.update_traces(marker_color=colors_contractors, textposition='outside', textfont=dict(size=11, color="#000000", weight="bold"))
+                fig_contractors.update_traces(marker_color=colors_contractors, textposition='outside', textfont=dict(size=11, color="#000000"))
                 fig_contractors.update_layout(
                     margin=dict(l=10, r=25, t=10, b=10),
                     height=300,
@@ -423,7 +423,7 @@ def render_csfa_dashboard():
                     paper_bgcolor='rgba(0,0,0,0)',
                     font=dict(family="Inter, sans-serif"),
                     xaxis=dict(range=[0, 5], dtick=1, showgrid=True, gridcolor="#e2e8f0"),
-                    yaxis=dict(showgrid=False, tickfont=dict(size=11, color="#0f172a", weight="bold"))
+                    yaxis=dict(showgrid=False, tickfont=dict(size=11, color="#0f172a"))
                 )
                 st.plotly_chart(fig_contractors, use_container_width=True, config={'displayModeBar': False})
             else:
