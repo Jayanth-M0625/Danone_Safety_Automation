@@ -64,45 +64,7 @@ def render_source_selector(dashboard_key: str) -> str:
     # Render active indicator
     if active_source == "aws":
         timestamp = get_last_sync_timestamp()
-        html_code = f"""
-        <div style='background-color:#0f2c59; color:white; padding:8px 12px; border-radius:6px; font-size:12px; font-weight:600; text-align:center;'>
-            Mode: AWS S3 Cache<br/>
-            <span style='font-size:10px; opacity:0.8;'>Synced: <span class='sync-timestamp' data-utc='{timestamp}'>Loading...</span><script>
-                (function() {{
-                    const scripts = document.getElementsByTagName('script');
-                    const currentScript = scripts[scripts.length - 1];
-                    const el = currentScript.previousElementSibling;
-                    if (!el) return;
-                    const raw = el.getAttribute('data-utc');
-                    if (!raw || raw === 'Never Synced' || raw.includes('Local') || raw.includes('Overridden')) {{
-                        el.textContent = raw || 'Never Synced';
-                        return;
-                    }}
-                    try {{
-                        const date = new Date(raw);
-                        if (isNaN(date.getTime())) {{
-                            el.textContent = raw;
-                            return;
-                        }}
-                        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-                        const day = String(date.getDate()).padStart(2, '0');
-                        const month = months[date.getMonth()];
-                        const year = date.getFullYear();
-                        let hours = date.getHours();
-                        const minutes = String(date.getMinutes()).padStart(2, '0');
-                        const ampm = hours >= 12 ? 'PM' : 'AM';
-                        hours = hours % 12;
-                        hours = hours ? hours : 12;
-                        const hoursStr = String(hours).padStart(2, '0');
-                        el.textContent = day + '-' + month + '-' + year + ' ' + hoursStr + ':' + minutes + ' ' + ampm;
-                    }} catch (e) {{
-                        el.textContent = raw;
-                    }}
-                }})();
-            </script></span>
-        </div>
-        """
-        st.sidebar.html(html_code)
+        st.sidebar.markdown(f"<div style='background-color:#0f2c59; color:white; padding:8px 12px; border-radius:6px; font-size:12px; font-weight:600; text-align:center;'>Mode: AWS S3 Cache<br/><span style='font-size:10px; opacity:0.8;'>Synced: {timestamp}</span></div>", unsafe_allow_html=True)
     elif active_source == "upload":
         st.sidebar.markdown("<div style='background-color:#20c997; color:white; padding:8px 12px; border-radius:6px; font-size:12px; font-weight:600; text-align:center;'>Mode: Uploaded Excel</div>", unsafe_allow_html=True)
         

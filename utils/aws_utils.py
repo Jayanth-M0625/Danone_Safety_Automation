@@ -1,7 +1,7 @@
 import os
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Tuple, Dict, Any
 import boto3
 from botocore.exceptions import ClientError, NoCredentialsError
@@ -99,10 +99,12 @@ def get_last_sync_timestamp() -> str:
     return "Never Synced"
 
 def update_sync_metadata() -> None:
-    """Updates the sync timestamp metadata to current UTC time in ISO format."""
-    now_utc = datetime.now(timezone.utc).isoformat()
+    """Updates the sync timestamp metadata to current IST time."""
+    ist_tz = timezone(timedelta(hours=5, minutes=30))
+    now_ist = datetime.now(timezone.utc).astimezone(ist_tz)
+    now_str = now_ist.strftime("%d-%b-%Y %I:%M %p") + " IST"
     try:
-        meta = {"last_sync": now_utc}
+        meta = {"last_sync": now_str}
         with open(METADATA_PATH, "w") as f:
             json.dump(meta, f)
     except Exception as e:
@@ -139,7 +141,9 @@ def initialize_s3_cache_from_local() -> None:
                     
     if any_copied and get_last_sync_timestamp() == "Never Synced":
         # Update metadata to show it was initialized from local
-        now_str = datetime.now().strftime("%d-%b-%Y %I:%M %p")
+        ist_tz = timezone(timedelta(hours=5, minutes=30))
+        now_ist = datetime.now(timezone.utc).astimezone(ist_tz)
+        now_str = now_ist.strftime("%d-%b-%Y %I:%M %p") + " IST"
         try:
             meta = {"last_sync": f"Initialized from Local ({now_str})"}
             with open(METADATA_PATH, "w") as f:
