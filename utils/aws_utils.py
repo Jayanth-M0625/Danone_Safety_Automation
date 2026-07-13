@@ -1,7 +1,7 @@
 import os
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Tuple, Dict, Any
 import boto3
 from botocore.exceptions import ClientError, NoCredentialsError
@@ -99,10 +99,10 @@ def get_last_sync_timestamp() -> str:
     return "Never Synced"
 
 def update_sync_metadata() -> None:
-    """Updates the sync timestamp metadata to current local time."""
-    now_str = datetime.now().strftime("%d-%b-%Y %I:%M %p")
+    """Updates the sync timestamp metadata to current UTC time in ISO format."""
+    now_utc = datetime.now(timezone.utc).isoformat()
     try:
-        meta = {"last_sync": now_str}
+        meta = {"last_sync": now_utc}
         with open(METADATA_PATH, "w") as f:
             json.dump(meta, f)
     except Exception as e:

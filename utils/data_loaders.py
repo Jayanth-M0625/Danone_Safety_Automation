@@ -2,11 +2,13 @@ import os
 import logging
 import pandas as pd
 import numpy as np
+import streamlit as st
 from datetime import datetime
 from io import BytesIO
 from typing import Tuple, Dict, Any, Union, Optional
 
 logger = logging.getLogger("DataLoaders")
+
 
 # ----------------- GENERAL HELPERS -----------------
 
@@ -31,6 +33,7 @@ def normalize_yes_no(val: Any) -> str:
 
 # ----------------- CSFA LOADER -----------------
 
+@st.cache_data(show_spinner=False)
 def load_csfa_data(source: Union[str, BytesIO]) -> pd.DataFrame:
     """Loads and processes CSFA dashboard accumilative Excel data."""
     try:
@@ -73,6 +76,7 @@ def load_csfa_data(source: Union[str, BytesIO]) -> pd.DataFrame:
 
 # ----------------- PTW LOADER -----------------
 
+@st.cache_data(show_spinner=False)
 def load_ptw_data(ptw_source: Union[str, BytesIO], audit_source: Union[str, BytesIO]) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Loads and processes PTW and PTW Audit Excel data."""
     df_ptw = pd.DataFrame()
@@ -135,6 +139,7 @@ def normalize_tool_status(status: Any) -> str:
         return "Rejected"
     return "Good"
 
+@st.cache_data(show_spinner=False)
 def load_tools_data(source: Union[str, BytesIO]) -> pd.DataFrame:
     """Loads and standardizes Tools & Tackles Excel sheets into a single master DataFrame."""
     all_tools = []
@@ -230,6 +235,7 @@ def load_tools_data(source: Union[str, BytesIO]) -> pd.DataFrame:
 
 # ----------------- WORKPLAN LOADER -----------------
 
+@st.cache_data(show_spinner=False)
 def load_workplan_data(source: Union[str, BytesIO]) -> pd.DataFrame:
     """Loads and standardizes Workplan Excel sheets into a single master DataFrame."""
     all_activities = []
